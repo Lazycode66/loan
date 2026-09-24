@@ -71,9 +71,9 @@ function effectiveLoanStatus(loan: Loan, repayments: Repayment[]): LoanStatus {
 }
 
 const navItems: { id: Page; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard }, { id: 'planner', label: 'Smart planner', icon: Sparkles }, { id: 'reverse-planner', label: 'Reverse loan planner', icon: TrendingUp }, { id: 'repayment-dna', label: 'Repayment DNA', icon: CircleDollarSign }, { id: 'loans', label: 'Loans', icon: Wallet },
-  { id: 'repayments', label: 'Repayments', icon: ClipboardList }, { id: 'sales', label: 'Sales', icon: ShoppingBag },
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays }, { id: 'reports', label: 'Reports', icon: BarChart3 }
+  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard }, { id: 'loans', label: 'Microloans', icon: Wallet }, { id: 'repayments', label: 'Repayments', icon: ClipboardList }, { id: 'sales', label: 'Daily sales', icon: ShoppingBag },
+  { id: 'planner', label: 'Smart planner', icon: Sparkles }, { id: 'reverse-planner', label: 'Reverse loan planner', icon: TrendingUp }, { id: 'repayment-dna', label: 'Repayment DNA', icon: CircleDollarSign },
+  { id: 'calendar', label: 'Repayment calendar', icon: CalendarDays }, { id: 'reports', label: 'Reports', icon: BarChart3 }
 ]
 
 export default function App() {
@@ -90,7 +90,7 @@ export default function App() {
   const add = (key: 'loans' | 'repayments' | 'sales' | 'notifications', item: never) => setData(d => ({ ...d, [key]: [...d[key], item] }))
   const updateData = (next: Data) => setData(next)
   const unread = data.notifications.filter(n => !n.read).length
-  const titles: Partial<Record<Page, string>> = { dashboard: 'Good morning, Rahul', planner: 'Smart Repayment Planner', 'reverse-planner': 'Reverse Loan Planner', 'repayment-dna': 'Repayment DNA' }
+  const titles: Partial<Record<Page, string>> = { dashboard: 'Good morning, Rahul', loans: 'Microloans', repayments: 'Repayments', sales: 'Daily sales', calendar: 'Repayment calendar', planner: 'Smart Repayment Planner', 'reverse-planner': 'Reverse Loan Planner', 'repayment-dna': 'Repayment DNA' }
   const title = titles[page] ?? page[0].toUpperCase() + page.slice(1)
   if (showIntro) return <IntroPage onEnter={() => { localStorage.setItem('microloan-intro-seen', 'true'); setShowIntro(false) }} />
   return <div className="app-shell" data-build={APP_BUILD}>
@@ -107,7 +107,7 @@ export default function App() {
     {sidebar && <div className="backdrop" onClick={() => setSidebar(false)} />}
     <main className="main">
       <header className="topbar"><button className="icon-btn menu-btn" onClick={() => setSidebar(true)}><Menu size={21} /></button><div className="breadcrumb">Workspace <ChevronRight size={14} /> <span>{page === 'dashboard' ? 'Overview' : title}</span></div><div className="top-actions"><div className="search-wrap"><Search size={17} /><input aria-label="Search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search anything..." /></div><button className="icon-btn notification-button" onClick={() => setPage('notifications')}><Bell size={19} />{unread > 0 && <i />}</button><div className="avatar avatar-top">RS</div></div></header>
-      <div className="content"><div className="page-heading"><div><p className="eyebrow">{page === 'dashboard' ? 'THURSDAY, SEPTEMBER 24, 2026' : 'MICROLOAN TRACKER'}</p><h1>{title}</h1>{page === 'dashboard' && <p className="subtitle">Here’s what’s happening with your business today.</p>}</div>{page === 'dashboard' && <div className="heading-actions"><button className="button button-secondary" onClick={() => setModal('sale')}><Plus size={17} /> Record sale</button><button className="button button-primary" onClick={() => setModal('loan')}><Plus size={17} /> Add loan</button></div>}</div>
+      <div className="content"><div className="page-heading"><div><p className="eyebrow">{page === 'dashboard' ? 'YOUR DAILY MONEY WORKSPACE' : 'MICROLOAN TRACKER'}</p><h1>{title}</h1>{page === 'dashboard' && <p className="subtitle">Track your microloans, repayments, and daily sales in one place.</p>}</div>{page === 'dashboard' && <div className="heading-actions"><button className="button button-secondary" onClick={() => setModal('sale')}><Plus size={17} /> Record daily sale</button><button className="button button-primary" onClick={() => setModal('loan')}><Plus size={17} /> Add microloan</button></div>}</div>
         {page === 'dashboard' && <Dashboard data={data} onNavigate={setPage} />}
         {page === 'planner' && <SmartPlanner data={data} />}
         {page === 'reverse-planner' && <ReverseLoanPlanner data={data} />}
@@ -138,9 +138,9 @@ function IntroPage({ onEnter }: { onEnter: () => void }) {
     <main>
       <section className="intro-hero">
         <div className="intro-copy">
-          <div className="intro-kicker"><span><Sparkles size={13} /> BUILT FOR SMALL BUSINESS</span></div>
-          <h1>Make every rupee<br /><em>count.</em></h1>
-          <p className="intro-lede">A simple, calm way to track loans, repayments, sales, and the financial health of your business — all in one place.</p>
+          <div className="intro-kicker"><span><Store size={13} /> BUILT FOR SMALL VENDORS</span></div>
+              <h1>Track your business<br /><em>with confidence.</em></h1>
+              <p className="intro-lede">Keep your microloans, repayments, and daily sales together in one simple workspace built for small vendors.</p>
           <div className="intro-cta-row"><button className="intro-cta" onClick={onEnter}>Explore your dashboard <ArrowUpRight size={17} /></button><span className="intro-cta-note"><Check size={14} /> No complicated accounting</span></div>
           <div className="intro-trust"><div className="trust-avatars"><span>RS</span><span>AM</span><span>PK</span></div><div><strong>Made for people who keep business moving</strong><small>Clear tools. Better decisions. Every day.</small></div></div>
         </div>
@@ -154,7 +154,7 @@ function IntroPage({ onEnter }: { onEnter: () => void }) {
           <div className="floating-card floating-card-bottom"><div className="floating-icon purple"><Wallet size={15} /></div><div><small>Loan balance</small><strong>₹25,000</strong></div><span className="mini-badge">On track</span></div>
         </div>
       </section>
-      <section className="intro-features"><div className="section-label">EVERYTHING YOU NEED TO STAY ON TOP</div><div className="feature-grid"><div className="intro-feature"><div className="feature-icon purple"><Wallet size={19} /></div><h3>Know your loans</h3><p>See exactly what you borrowed, what you have repaid, and what is still outstanding.</p></div><div className="intro-feature"><div className="feature-icon green"><TrendingUp size={19} /></div><h3>Track daily sales</h3><p>Record income and expenses in seconds, then understand your business trends at a glance.</p></div><div className="intro-feature"><div className="feature-icon orange"><CalendarDays size={19} /></div><h3>Never miss a payment</h3><p>Keep your repayment schedule clear with timely reminders and a simple calendar.</p></div></div></section>
+      <section className="intro-features"><div className="section-label">YOUR EVERYDAY MONEY WORKSPACE</div><div className="feature-grid"><div className="intro-feature"><div className="feature-icon purple"><Wallet size={19} /></div><h3>Track microloans</h3><p>Record principal, interest, lenders, due dates, and exactly what remains outstanding.</p></div><div className="intro-feature"><div className="feature-icon green"><ClipboardList size={19} /></div><h3>Record repayments</h3><p>Log every payment against the right loan and keep your repayment history organized.</p></div><div className="intro-feature"><div className="feature-icon orange"><ShoppingBag size={19} /></div><h3>Follow daily sales</h3><p>Capture customers, sales, expenses, and net cash flow in seconds each day.</p></div></div></section>
       <section className="intro-sdg"><div className="sdg-mark">8</div><div><div className="section-label">A PROJECT WITH PURPOSE</div><h2>Supporting decent work<br />and economic growth.</h2><p>MicroLoan Tracker is designed to help small vendors organize their everyday financial records and make more informed business decisions.</p></div><button className="intro-text-link" onClick={onEnter}>See how it works <ArrowUpRight size={16} /></button></section>
     </main>
     <footer className="intro-footer"><span>© 2026 MicroLoan Tracker</span><span>Simple financial tracking for small businesses.</span><span>Built for the next step.</span></footer>
