@@ -35,7 +35,7 @@ const demoData: Data = {
   ],
   sales: [-1, -2, -3, -4, -5, -6, 0].map((offset, i) => ({ id: `s${i}`, date: dayOffset(offset), category: i % 2 ? 'Vegetables' : 'Fruits', amount: [104.8387, 99.5238, 110, 96.6038, 95.7895, 99.5652, 97.25][i], customers: [31, 42, 26, 53, 38, 46, 40][i], method: i % 3 ? 'UPI' : 'Cash', expenses: [800, 920, 620, 1100, 740, 950, 780][i], notes: '' })),
   notifications: [
-    { id: 'n1', title: 'Upcoming repayment', message: '₹4,583 repayment for LN-001 is due in 7 days.', type: 'info', read: false, date: dayOffset(-1) },
+    { id: 'n1', title: 'Upcoming repayment', message: 'Your next repayment is due soon. Review the repayment calendar for the current amount.', type: 'info', read: false, date: dayOffset(-1) },
     { id: 'n2', title: 'Overdue repayment', message: 'LN-002 has an overdue repayment. Review your calendar.', type: 'warning', read: false, date: dayOffset(-2) },
     { id: 'n3', title: 'Great sales day', message: 'You crossed ₹4,000 in sales yesterday.', type: 'success', read: true, date: dayOffset(-1) }
   ]
@@ -44,8 +44,9 @@ const demoData: Data = {
 const money = (value: number) => `${value < 0 ? '-' : ''}₹${Math.abs(Math.round(value)).toLocaleString('en-IN')}`
 const dateLabel = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 const cls = (...names: (string | false | undefined)[]) => names.filter(Boolean).join(' ')
-const saleTotal = (sale: Sale) => sale.amount * Math.max(0, sale.customers)
-const loanInterestAmount = (loan: Loan) => Math.max(0, loan.principal * loan.interest / 100)
+const finiteNumber = (value: number, fallback = 0) => Number.isFinite(value) ? value : fallback
+const saleTotal = (sale: Sale) => Math.max(0, finiteNumber(sale.amount) * Math.max(0, finiteNumber(sale.customers)))
+const loanInterestAmount = (loan: Loan) => Math.max(0, finiteNumber(loan.principal) * Math.max(0, finiteNumber(loan.interest)) / 100)
 function interestForOutstanding(loan: Loan, outstanding: number) {
   return loan.total > 0 ? Math.min(loanInterestAmount(loan), loanInterestAmount(loan) * Math.max(0, outstanding) / loan.total) : 0
 }
@@ -56,9 +57,9 @@ function paidInterest(loan: Loan, repayments: Repayment[]) {
   return Math.max(0, loanInterestAmount(loan) - remainingInterest(loan, repayments))
 }
 function readData(): Data { try { const stored = localStorage.getItem('microloan-data'); return stored ? JSON.parse(stored) : demoData } catch { return demoData } }
-function loanPaid(loan: Loan, repayments: Repayment[]) { return repayments.filter(r => r.loanId === loan.id).reduce((sum, r) => sum + r.amount, 0) }
-function loanOutstanding(loan: Loan, repayments: Repayment[]) { return Math.max(0, loan.total - loanPaid(loan, repayments)) }
-function loanProgress(loan: Loan, repayments: Repayment[]) { return Math.min(100, Math.round((loanPaid(loan, repayments) / loan.total) * 100)) }
+function loanPaid(loan: Loan, repayments: Repayment[]) { return Math.max(0, repayments.filter(r => r.loanId === loan.id).reduce((sum, r) => sum + Math.max(0, finiteNumber(r.amount)), 0)) }
+function loanOutstanding(loan: Loan, repayments: Repayment[]) { return Math.max(0, finiteNumber(loan.total) - loanPaid(loan, repayments)) }
+function loanProgress(loan: Loan, repayments: Repayment[]) { return loan.total > 0 ? Math.min(100, Math.round((loanPaid(loan, repayments) / loan.total) * 100)) : 0 }
 function scheduledRepayment(loan: Loan) {
   const duration = Math.max(1, loan.duration || 1)
   const periods = loan.frequency === 'Daily' ? duration * 30 : loan.frequency === 'Weekly' ? duration * 52 / 12 : duration
@@ -163,11 +164,13 @@ function IntroPage({ onEnter }: { onEnter: () => void }) {
 
 function StatCard({ label, value, meta, tone, icon: Icon }: { label: string; value: string; meta: string; tone: string; icon: typeof Wallet }) { return <div className="stat-card"><div className={cls('stat-icon', tone)}><Icon size={19} /></div><div className="stat-copy"><span>{label}</span><strong>{value}</strong><small>{meta}</small></div></div> }
 function Dashboard({ data, onNavigate }: { data: Data; onNavigate: (p: Page) => void }) {
-  const totalBorrowed = data.loans.reduce((s, l) => s + l.principal, 0), totalRepaid = data.repayments.reduce((s, r) => s + r.amount, 0), outstanding = data.loans.reduce((s, l) => s + loanOutstanding(l, data.repayments), 0)
+  const totalBorrowed = data.loans.reduce((s, l) => s + Math.max(0, finiteNumber(l.principal)), 0), totalRepaid = data.repayments.reduce((s, r) => s + Math.max(0, finiteNumber(r.amount)), 0), outstanding = data.loans.reduce((s, l) => s + loanOutstanding(l, data.repayments), 0)
+  const totalRepayment = data.loans.reduce((s, l) => s + Math.max(0, finiteNumber(l.total)), 0)
+  const activeLoanCount = data.loans.filter(l => effectiveLoanStatus(l, data.repayments) !== 'completed').length
   const todaySales = data.sales.filter(s => s.date === iso(today)).reduce((s, x) => s + saleTotal(x), 0)
   const chart = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); const key = iso(d); return { name: d.toLocaleDateString('en-IN', { weekday: 'short' }), amount: data.sales.filter(s => s.date === key).reduce((sum, x) => sum + saleTotal(x), 0) } })
   const active = data.loans.find(l => effectiveLoanStatus(l, data.repayments) !== 'completed')
-  return <><div className="stats-grid"><StatCard label="Total borrowed" value={money(totalBorrowed)} meta={`${data.loans.length} loans in total`} tone="purple" icon={Wallet} /><StatCard label="Total repaid" value={money(totalRepaid)} meta={`${totalBorrowed ? Math.round(totalRepaid / data.loans.reduce((s, l) => s + l.total, 0) * 100) : 0}% of total`} tone="green" icon={ArrowUpRight} /><StatCard label="Outstanding balance" value={money(outstanding)} meta={data.loans.filter(l => l.status !== 'completed').length + ' active loans'} tone="orange" icon={CircleDollarSign} /><StatCard label="Today's sales" value={money(todaySales)} meta="Across all categories" tone="blue" icon={TrendingUp} /></div>
+  return <><div className="stats-grid"><StatCard label="Total borrowed" value={money(totalBorrowed)} meta={`${data.loans.length} loans in total`} tone="purple" icon={Wallet} /><StatCard label="Total repaid" value={money(totalRepaid)} meta={`${totalRepayment ? Math.min(100, Math.round(totalRepaid / totalRepayment * 100)) : 0}% of total repayment`} tone="green" icon={ArrowUpRight} /><StatCard label="Outstanding balance" value={money(outstanding)} meta={`${activeLoanCount} active loans`} tone="orange" icon={CircleDollarSign} /><StatCard label="Today's sales" value={money(todaySales)} meta="Across all categories" tone="blue" icon={TrendingUp} /></div>
     <PlannerSummary data={data} onOpen={() => onNavigate('planner')} />
     <div className="dashboard-grid"><section className="panel chart-panel"><div className="panel-heading"><div><h2>Sales overview</h2><p>Revenue performance over the last 7 days</p></div><button className="select-button">Last 7 days <ChevronRight size={15} /></button></div><div className="chart-legend"><span><i className="dot purple-dot" /> Sales revenue</span><strong>{money(data.sales.filter(s => s.date >= dayOffset(-6)).reduce((sum, sale) => sum + saleTotal(sale), 0))}</strong></div><ResponsiveContainer width="100%" height={238}><AreaChart data={chart}><defs><linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7667ee" stopOpacity=".28" /><stop offset="100%" stopColor="#7667ee" stopOpacity="0" /></linearGradient></defs><CartesianGrid stroke="#edf0f5" vertical={false} /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#98a1b2', fontSize: 12 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#98a1b2', fontSize: 12 }} tickFormatter={v => `₹${v / 1000}k`} /><Tooltip formatter={(v: number) => [money(v), 'Sales']} contentStyle={{ border: 0, borderRadius: 10, boxShadow: '0 5px 20px #20294320' }} /><Area type="monotone" dataKey="amount" stroke="#7667ee" strokeWidth={2.5} fill="url(#salesGradient)" /></AreaChart></ResponsiveContainer></section>
       <section className="panel progress-panel"><div className="panel-heading"><div><h2>Loan progress</h2><p>Overall repayment status</p></div><button className="icon-btn" onClick={() => onNavigate('loans')}><ChevronRight size={18} /></button></div>{data.loans.length === 0 ? <Empty text="No loans yet." /> : data.loans.slice(0, 3).map(l => <div className="loan-progress" key={l.id}><div className="row-between"><div><strong>{l.loanId}</strong><span>{l.lender}</span></div><b>{loanProgress(l, data.repayments)}%</b></div><div className="progress-track"><div style={{ width: `${loanProgress(l, data.repayments)}%` }} /></div><div className="row-between muted"><span>{money(loanPaid(l, data.repayments))} repaid</span><span>{money(loanOutstanding(l, data.repayments))} left</span></div></div>)}</section></div>
