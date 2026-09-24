@@ -27,4 +27,10 @@ This is a Vite application and is ready to deploy from GitHub on Vercel:
 
 The same build command and output directory work for Netlify and other static hosts.
 
+### GitHub Pages
+
+GitHub Pages is configured through `.github/workflows/deploy-pages.yml`. After pushing to
+`master`, enable **Settings → Pages → Source: GitHub Actions** in the repository. The
+Vite base path is configured for `https://lazycode66.github.io/loan/`.
+
 The current prototype persists demo and user-entered records in browser `localStorage`. No secrets or environment variables are required for the current build.
