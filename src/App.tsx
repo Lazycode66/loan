@@ -20,6 +20,7 @@ type Notification = { id: string; title: string; message: string; type: 'success
 type Data = { loans: Loan[]; repayments: Repayment[]; sales: Sale[]; notifications: Notification[] }
 
 const today = new Date()
+const APP_BUILD = '2026-09-24-no-digital-twin'
 const iso = (date: Date) => date.toISOString().slice(0, 10)
 const dayOffset = (amount: number) => { const d = new Date(); d.setDate(d.getDate() + amount); return iso(d) }
 const demoData: Data = {
@@ -77,7 +78,7 @@ export default function App() {
   const titles: Partial<Record<Page, string>> = { dashboard: 'Good morning, Rahul', planner: 'Smart Repayment Planner', 'reverse-planner': 'Reverse Loan Planner', 'repayment-dna': 'Repayment DNA' }
   const title = titles[page] ?? page[0].toUpperCase() + page.slice(1)
   if (showIntro) return <IntroPage onEnter={() => { localStorage.setItem('microloan-intro-seen', 'true'); setShowIntro(false) }} />
-  return <div className="app-shell">
+  return <div className="app-shell" data-build={APP_BUILD}>
     <aside className={cls('sidebar', sidebar && 'open')}>
       <div className="brand"><div className="brand-mark"><Store size={19} /></div><div><strong>MicroLoan</strong><span>TRACKER</span></div><button className="icon-btn mobile-close" onClick={() => setSidebar(false)}><X size={18} /></button></div>
       <div className="workspace-label">WORKSPACE</div>
