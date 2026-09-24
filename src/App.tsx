@@ -10,7 +10,7 @@ import {
   Tooltip, XAxis, YAxis
 } from 'recharts'
 
-type Page = 'dashboard' | 'planner' | 'digital-twin' | 'reverse-planner' | 'repayment-dna' | 'loans' | 'repayments' | 'sales' | 'calendar' | 'reports' | 'notifications' | 'profile' | 'admin'
+type Page = 'dashboard' | 'planner' | 'reverse-planner' | 'repayment-dna' | 'loans' | 'repayments' | 'sales' | 'calendar' | 'reports' | 'notifications' | 'profile' | 'admin'
 type LoanStatus = 'active' | 'completed' | 'overdue'
 type PaymentMethod = 'Cash' | 'UPI' | 'Bank Transfer' | 'Card' | 'Other'
 type Loan = { id: string; loanId: string; lender: string; principal: number; interest: number; total: number; start: string; due: string; frequency: string; duration: number; status: LoanStatus; notes: string }
@@ -55,7 +55,7 @@ function effectiveLoanStatus(loan: Loan, repayments: Repayment[]): LoanStatus {
 }
 
 const navItems: { id: Page; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard }, { id: 'planner', label: 'Smart planner', icon: Sparkles }, { id: 'digital-twin', label: 'Financial digital twin', icon: Activity }, { id: 'reverse-planner', label: 'Reverse loan planner', icon: TrendingUp }, { id: 'repayment-dna', label: 'Repayment DNA', icon: CircleDollarSign }, { id: 'loans', label: 'Loans', icon: Wallet },
+  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard }, { id: 'planner', label: 'Smart planner', icon: Sparkles }, { id: 'reverse-planner', label: 'Reverse loan planner', icon: TrendingUp }, { id: 'repayment-dna', label: 'Repayment DNA', icon: CircleDollarSign }, { id: 'loans', label: 'Loans', icon: Wallet },
   { id: 'repayments', label: 'Repayments', icon: ClipboardList }, { id: 'sales', label: 'Sales', icon: ShoppingBag },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays }, { id: 'reports', label: 'Reports', icon: BarChart3 }
 ]
@@ -74,7 +74,7 @@ export default function App() {
   const add = (key: 'loans' | 'repayments' | 'sales' | 'notifications', item: never) => setData(d => ({ ...d, [key]: [...d[key], item] }))
   const updateData = (next: Data) => setData(next)
   const unread = data.notifications.filter(n => !n.read).length
-  const titles: Partial<Record<Page, string>> = { dashboard: 'Good morning, Rahul', planner: 'Smart Repayment Planner', 'digital-twin': 'Financial Digital Twin', 'reverse-planner': 'Reverse Loan Planner', 'repayment-dna': 'Repayment DNA' }
+  const titles: Partial<Record<Page, string>> = { dashboard: 'Good morning, Rahul', planner: 'Smart Repayment Planner', 'reverse-planner': 'Reverse Loan Planner', 'repayment-dna': 'Repayment DNA' }
   const title = titles[page] ?? page[0].toUpperCase() + page.slice(1)
   if (showIntro) return <IntroPage onEnter={() => { localStorage.setItem('microloan-intro-seen', 'true'); setShowIntro(false) }} />
   return <div className="app-shell">
@@ -94,7 +94,6 @@ export default function App() {
       <div className="content"><div className="page-heading"><div><p className="eyebrow">{page === 'dashboard' ? 'THURSDAY, SEPTEMBER 24, 2026' : 'MICROLOAN TRACKER'}</p><h1>{title}</h1>{page === 'dashboard' && <p className="subtitle">Here’s what’s happening with your business today.</p>}</div>{page === 'dashboard' && <div className="heading-actions"><button className="button button-secondary" onClick={() => setModal('sale')}><Plus size={17} /> Record sale</button><button className="button button-primary" onClick={() => setModal('loan')}><Plus size={17} /> Add loan</button></div>}</div>
         {page === 'dashboard' && <Dashboard data={data} onNavigate={setPage} />}
         {page === 'planner' && <SmartPlanner data={data} />}
-        {page === 'digital-twin' && <DigitalTwin data={data} />}
         {page === 'reverse-planner' && <ReverseLoanPlanner data={data} />}
         {page === 'repayment-dna' && <RepaymentDNA data={data} />}
         {page === 'loans' && <Loans data={data} setModal={setModal} search={search} />}
@@ -207,26 +206,6 @@ function recordedDailyMetrics(data: Data) {
   const expenses = data.sales.reduce((sum, sale) => sum + sale.expenses, 0)
   const dayCount = Math.max(1, days.size)
   return { salesPerDay: sales / dayCount, expensesPerDay: expenses / dayCount, netPerDay: (sales - expenses) / dayCount }
-}
-
-function DigitalTwin({ data }: { data: Data }) {
-  const [salesChange, setSalesChange] = useState('-20')
-  const [expenseChange, setExpenseChange] = useState('10')
-  const [repayment, setRepayment] = useState('1000')
-  const [duration, setDuration] = useState('4')
-  const history = recordedDailyMetrics(data)
-  const days = Math.max(1, Number(duration) || 1)
-  const sales = history.salesPerDay * days * (1 + (Number(salesChange) || 0) / 100)
-  const expenses = history.expensesPerDay * days * (1 + (Number(expenseChange) || 0) / 100)
-  const net = sales - expenses
-  const repaymentTotal = Math.max(0, Number(repayment) || 0) * days
-  const outstanding = data.loans.reduce((sum, loan) => sum + loanOutstanding(loan, data.repayments), 0)
-  const realRepayments = data.repayments.length ? data.repayments.reduce((sum, item) => sum + item.amount, 0) / Math.max(1, new Set(data.repayments.map(item => item.date)).size) * days : 0
-  const realSales = history.salesPerDay * days
-  const realExpenses = history.expensesPerDay * days
-  const TwinValue = ({ label, real, simulation }: { label: string; real: number; simulation: number }) => <div className="twin-value"><span>{label}</span><div><strong>{money(real)}</strong><b>{money(simulation)}</b></div><small>Real business <em>Simulation</em></small></div>
-  return <div className="feature-page"><div className="feature-hero"><div><div className="eyebrow feature-eyebrow"><Activity size={13} /> ISOLATED SIMULATION MODE</div><h2>Experiment without<br /><em>changing real records.</em></h2><p>Try hypothetical changes to sales, expenses, repayments, and duration. Your actual loans, sales, and repayments are never modified.</p></div><div className="simulation-label"><Sparkles size={17} /><strong>Simulation only</strong><span>Based on recorded data — not a financial prediction or advice.</span></div></div>
-    <div className="feature-grid-2"><section className="panel control-panel"><div className="panel-heading"><div><h2>Financial Digital Twin</h2><p>Set your hypothetical scenario</p></div><span className="sim-badge">No data changed</span></div><div className="form-grid"><Field label="Sales change (%)" value={salesChange} onChange={setSalesChange} type="number" /><Field label="Expense change (%)" value={expenseChange} onChange={setExpenseChange} type="number" /><Field label="Hypothetical repayment" value={repayment} onChange={setRepayment} type="number" /><Field label="Simulation duration (days)" value={duration} onChange={setDuration} type="number" /></div><div className="scenario-callout"><SlidersHorizontal size={16} /><span>Example: sales -20%, expenses +10%, repayment ₹1,000.</span></div></section><section className="panel twin-results"><div className="panel-heading"><div><h2>Real business vs simulation</h2><p>{days} day hypothetical window</p></div></div><div className="twin-legend"><span><i className="real-dot" /> Real business</span><span><i className="sim-dot" /> Simulation</span></div><TwinValue label="Sales" real={realSales} simulation={sales} /><TwinValue label="Expenses" real={realExpenses} simulation={expenses} /><TwinValue label="Net cash flow" real={realSales - realExpenses} simulation={net} /><TwinValue label="Repayments" real={realRepayments} simulation={repaymentTotal} /><TwinValue label="Outstanding loan" real={outstanding} simulation={Math.max(0, outstanding - repaymentTotal)} /><TwinValue label="Ending cash" real={realSales - realExpenses - realRepayments} simulation={net - repaymentTotal} /></section></div><p className="feature-disclaimer">Simulation only — based on recorded data. This does not predict future results or provide financial advice.</p></div>
 }
 
 function ReverseLoanPlanner({ data }: { data: Data }) {
